@@ -1,10 +1,10 @@
-// import { Router } from 'express';
-// import { draw, redeem } from '../controllers/luckydrawController';
-const express = require('express');
-const router = express.Router();
-const luckydrawController = require('../controllers/luckydrawController');
+import express from "express";
+import { initiateDraw, redeemPrize } from "../controllers/luckydrawController";
 
-router.post('./draw', luckydrawController.draw);
-router.post('./redeem', luckydrawController.redeem);
+const luckydrawRouter = express.Router();
 
-module.exports = router;
+// Define routes related to Lucky Draw
+luckydrawRouter.post("/draw", initiateDraw); // Initiate a lucky draw
+luckydrawRouter.post("/redeem", redeemPrize); // Redeem a prize
+
+export default luckydrawRouter;

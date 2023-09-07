@@ -1,111 +1,114 @@
-import { Request, Response } from 'express';
-import Customer from '../models/Customer';
-import Prize from '../models/Prize';
+import { Request, Response } from "express";
+import CustomerModel from "../models/Customer";
+import PrizeModel from "../models/Prize";
+
+// Define probabilities for each prize category
+const probabilities = {
+  "$5 Cash Coupon": 0.5,
+  "$2 Cash Coupon": 2,
+  "Buy 1 Get 1 Free Coupon": 80,
+  "No Prize": 17.5,
+};
 
 // Function to initiate a lucky draw
-export const draw = async (req: Request, res: Response) => {
+export const initiateDraw = async (req: Request, res: Response) => {
   try {
-    const { customerId } = req.body; // Assuming you pass the customer's ID in the request
+    const { mobileNumber } = req.body;
 
-    // Check if the customer has already drawn today
-    const customer = await Customer.findByPk(customerId);
-    if (customer) {
-      const currentDate = new Date();
-      if (
-        customer.lastDrawDate &&
-        customer.lastDrawDate.toDateString() === currentDate.toDateString()
-      ) {
-        return res.status(400).json({ message: 'You can only draw once per day.' });
-      }
+    // Find the customer by mobile number
+    const customer = await CustomerModel.getByMobileNumber(mobileNumber);
+
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found." });
     }
 
-    // Fetch available prizes from the database
-    const availablePrizes = await Prize.findAll({
-      where: {
-        remainingQuota: {
-          $gt: 0,
-        },
-      },
-    });
-
-    // Check if there are available prizes
-    if (availablePrizes.length === 0) {
-      return res.status(400).json({ message: 'No prizes are available.' });
+    // Check if the customer is eligible to draw based on the last draw date
+    const today = new Date().toDateString();
+    if (customer.lastDrawDate === today) {
+      return res
+        .status(400)
+        .json({ message: "You can only draw once per day." });
     }
 
-    // Calculate the total probability for available prizes
-    const totalProbability = availablePrizes.reduce(
-      (total: any, prize: any) => total + prize.probability,
-      0
-    );
+    // Perform the lucky draw based on probabilities
+    const prize = performLuckyDraw(probabilities);
 
-    // Generate a random number between 0 and totalProbability
-    const randomNumber = Math.random() * totalProbability;
+    // Check and decrement the daily and total quotas for the prize category
+    const prizeInfo = await PrizeModel.getByCategory(prize);
 
-    // Find the prize based on the random number and probabilities
-    let selectedPrize: Prize | null = null;
-    let accumulatedProbability = 0;
-
-    for (const prize of availablePrizes) {
-      accumulatedProbability += prize.probability;
-
-      if (randomNumber <= accumulatedProbability) {
-        selectedPrize = prize;
-        break;
-      }
+    if (!prizeInfo) {
+      return res.status(500).json({ message: "Invalid prize category." });
     }
 
-    // If a prize is selected, update the customer's last draw date and prize information
-    if (selectedPrize) {
-      // Update the customer's last draw date
-      customer.lastDrawDate = new Date();
-      await customer.save();
-
-      // Decrement the remaining quota for the selected prize
-      selectedPrize.remainingQuota -= 1;
-      await selectedPrize.save();
-
-      return res.status(200).json({ message: `Congratulations! You won ${selectedPrize.name}` });
-    } else {
-      return res.status(200).json({ message: 'Sorry, you did not win any prize this time.' });
+    if (prizeInfo.dailyQuota <= 0 || prizeInfo.totalQuota <= 0) {
+      return res.status(400).json({ message: "Prize quota exceeded." });
     }
+
+    // Update customer's last draw date
+    customer.lastDrawDate = today;
+    await CustomerModel.updateLastDrawDate(mobileNumber, today);
+
+    // Decrement quotas
+    await PrizeModel.decrementQuotas(prize);
+
+    // Return the draw result
+    return res.status(200).json({ message: `You won: ${prize}` });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'An error occurred while processing the draw.' });
+    return res
+      .status(500)
+      .json({ message: "An error occurred during the draw." });
   }
 };
 
-// Function to redeem prizes (assuming you have a separate endpoint for redemption)
-export const redeem = async (req: Request, res: Response) => {
+// Function to perform a lucky draw based on probabilities
+function performLuckyDraw(probabilityMap: { [key: string]: number }): string {
+  const randomValue = Math.random() * 100;
+  let cumulativeProbability = 0;
+
+  for (const prize in probabilityMap) {
+    cumulativeProbability += probabilityMap[prize];
+
+    if (randomValue <= cumulativeProbability) {
+      return prize;
+    }
+  }
+
+  // If no prize is selected, return "No Prize"
+  return "No Prize";
+}
+
+// Function to redeem a prize
+export const redeemPrize = async (req: Request, res: Response) => {
   try {
-    const { customerId, prizeId } = req.body; // Assuming you pass the customer's ID and prize ID in the request
+    const { mobileNumber, prizeCategory } = req.body;
 
-    // Check if the prize is valid and available for redemption
-    const prize = await Prize.findOne({
-      where: {
-        id: prizeId,
-        remainingQuota: {
-          $gt: 0,
-        },
-      },
-    });
+    // Find the customer by mobile number
+    const customer = await CustomerModel.getByMobileNumber(mobileNumber);
 
-    if (!prize) {
-      return res.status(400).json({ message: 'Invalid or unavailable prize.' });
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found." });
     }
 
-    // Update the customer's record to indicate that they've redeemed the prize
-    const customer = await Customer.findByPk(customerId);
-    if (customer) {
-      // Implement logic to mark the prize as redeemed by the customer in your database
-      // For example, you can create a separate table to track prize redemption history
+    // Check if the customer has won the specified prize category
+    const hasPrize = await PrizeModel.hasPrize(mobileNumber, prizeCategory);
 
-      return res.status(200).json({ message: `You have successfully redeemed ${prize.name}.` });
-    } else {
-      return res.status(400).json({ message: 'Customer not found.' });
+    if (!hasPrize) {
+      return res
+        .status(400)
+        .json({ message: "You do not have this prize to redeem." });
     }
+
+    // Implement the logic to redeem the prize, e.g., send an SMS or generate a coupon code
+
+    // Return a success message or details of the redeemed prize
+    return res
+      .status(200)
+      .json({ message: `Prize redeemed: ${prizeCategory}` });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'An error occurred while processing the redemption.' });
+    return res
+      .status(500)
+      .json({ message: "An error occurred during prize redemption." });
   }
 };

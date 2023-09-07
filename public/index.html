@@ -1,38 +1,37 @@
 <html>
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/index.css" type="text/css">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/index.css" type="text/css" />
     <title>Lucky Draw</title>
-</head>
+  </head>
 
-    <body>
+  <body>
+    <header>
+      <h1>Lucky Draw</h1>
+    </header>
 
-        <header>
-            <h1>Lucky Draw</h1>
-        </header>
+    <main>
+      <section id="draw-section">
+        <h2>Start Lucky Draw</h2>
+        <form id="draw-form">
+          <label for="mobile-number">Mobile Number:</label>
+          <input type="text" id="mobile-number" name="mobile-number" required />
+        </form>
+        <button id="draw-button">Draw</button>
+        <div id="draw-result"></div>
+      </section>
 
-        <main>
+      <section id="prizes-section">
+        <h2>Your Prizes</h2>
+        <ul id="prizes-list"></ul>
+      </section>
+    </main>
 
-            <section id="draw-section">
-                <h2>Start Lucky Draw</h2>
-                <button id="draw-button">Draw</button>
-                <div id="draw-result"></div>
-            </section>
+    <footer>
+      <p>&copy; Code Test</p>
+    </footer>
 
-            <section id="prizes-section">
-                <h2>Your Prizes</h2>
-                <ul id="prizes-list"></ul>
-            </section>
-
-        </main>
-
-        <footer>
-            <p>&copy; Lucky Draw App by Sherie Ma</p>
-        </footer>
-
-        <script src="/index.js" type="text/javascript"></script>
-
-    </body>
+    <script src="/index.js" type="text/javascript"></script>
+  </body>
 </html>

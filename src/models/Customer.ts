@@ -1,26 +1,23 @@
-import { Model, DataTypes } from 'sequelize';
-import sequelize from '../../db/database';
+import knex from "../../db/connection"; // Import the Knex connection
 
-class Customer extends Model {
-  public id!: number;
-  public name!: string;
-  public mobileNumber!: string;
-  public lastDrawDate!: Date;
+class CustomerModel {
+  // Get a customer by mobile number
+  async getByMobileNumber(mobileNumber: string) {
+    return await knex("customers").where({ mobileNumber }).first();
+  }
 
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  // Create a new customer
+  async create(customerData: { name: string; mobileNumber: string }) {
+    return await knex("customers").insert(customerData).returning("*");
+  }
+
+  // Update the lastDrawDate for a customer
+  async updateLastDrawDate(mobileNumber: string, lastDrawDate: string) {
+    return await knex("customers")
+      .where({ mobileNumber })
+      .update({ lastDrawDate })
+      .returning("*");
+  }
 }
 
-Customer.init(
-  {
-    name: DataTypes.STRING,
-    mobileNumber: DataTypes.STRING,
-    lastDrawDate: DataTypes.DATE,
-  },
-  {
-    sequelize,
-    tableName: 'customers',
-  }
-);
-
-export default Customer;
+export default new CustomerModel();
