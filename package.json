@@ -1,0 +1,27 @@
+{
+  "name": "gusto_luckydraw",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sherietecky/gusto_luckydraw.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sherietecky/gusto_luckydraw/issues"
+  },
+  "homepage": "https://github.com/sherietecky/gusto_luckydraw#readme",
+  "description": "",
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.17",
+    "@types/node": "^20.5.9",
+    "typescript": "^5.2.2"
+  }
+}
